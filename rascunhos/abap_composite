@@ -1,4 +1,4 @@
-PRIMEIRA VERSAO do ABAP Composite
+ABAP Composite
 
 CLASS zcl_registro DEFINITION ABSTRACT.
   PUBLIC SECTION.
