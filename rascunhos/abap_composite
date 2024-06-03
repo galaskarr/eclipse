@@ -1,0 +1,99 @@
+PRIMEIRA VERSAO do ABAP Composite
+
+CLASS zcl_registro DEFINITION ABSTRACT.
+  PUBLIC SECTION.
+    DATA: nome TYPE string,
+          campos TYPE TABLE OF string WITH EMPTY KEY.
+
+    METHODS: constructor IMPORTING i_nome TYPE string i_campos TYPE TABLE OF string,
+             add_filho IMPORTING i_filho TYPE REF TO zcl_registro,
+             remove_filho IMPORTING i_filho TYPE REF TO zcl_registro,
+             get_campos RETURNING VALUE(r_campos) TYPE TABLE OF string,
+             to_string RETURNING VALUE(r_string) TYPE string.
+
+  PROTECTED SECTION.
+    DATA: filhos TYPE TABLE OF REF TO zcl_registro WITH EMPTY KEY.
+ENDCLASS.
+
+CLASS zcl_registro IMPLEMENTATION.
+  METHOD constructor.
+    nome = i_nome.
+    campos = i_campos.
+  ENDMETHOD.
+
+  METHOD add_filho.
+    APPEND i_filho TO filhos.
+  ENDMETHOD.
+
+  METHOD remove_filho.
+    DELETE filhos WHERE table_line = i_filho.
+  ENDMETHOD.
+
+  METHOD get_campos.
+    r_campos = campos.
+  ENDMETHOD.
+
+  METHOD to_string.
+    DATA: lv_string TYPE string,
+          lv_filho_string TYPE string.
+
+    lv_string = |{ nome }: { REDUCE string( INIT s = '' FOR campo IN campos NEXT s = s && campo && ', ' ) }|.
+    lv_string = lv_string(0:strlen( lv_string ) - 2 ) && |.|. " Remove last comma and space
+
+    LOOP AT filhos INTO DATA(filho).
+      lv_filho_string = filho->to_string( ).
+      lv_string = lv_string && |{ lv_filho_string }|.
+    ENDLOOP.
+
+    r_string = lv_string.
+  ENDMETHOD.
+ENDCLASS.
+
+
+CLASS zcl_registro_leaf DEFINITION INHERITING FROM zcl_registro.
+  PUBLIC SECTION.
+    METHODS: constructor IMPORTING i_nome TYPE string i_campos TYPE TABLE OF string.
+ENDCLASS.
+
+CLASS zcl_registro_leaf IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( i_nome = i_nome i_campos = i_campos ).
+  ENDMETHOD.
+ENDCLASS.
+
+
+CLASS zcl_registro_composite DEFINITION INHERITING FROM zcl_registro.
+  PUBLIC SECTION.
+    METHODS: constructor IMPORTING i_nome TYPE string i_campos TYPE TABLE OF string.
+ENDCLASS.
+
+CLASS zcl_registro_composite IMPLEMENTATION.
+  METHOD constructor.
+    super->constructor( i_nome = i_nome i_campos = i_campos ).
+  ENDMETHOD.
+ENDCLASS.
+
+
+START-OF-SELECTION.
+
+  DATA: raiz TYPE REF TO zcl_registro,
+        c1000 TYPE REF TO zcl_registro,
+        c1001 TYPE REF TO zcl_registro,
+        c2000 TYPE REF TO zcl_registro,
+        c2001 TYPE REF TO zcl_registro,
+        c9999 TYPE REF TO zcl_registro.
+
+  raiz = NEW zcl_registro_composite( i_nome = 'C0000' i_campos = VALUE #( ( 'C0000_campo1' ) ( 'C0000_campo2' ) ) ).
+  c1000 = NEW zcl_registro_composite( i_nome = 'C1000' i_campos = VALUE #( ( 'C1000_campo1' ) ( 'C1000_campo2' ) ( 'C1000_campo3' ) ) ).
+  c1001 = NEW zcl_registro_leaf( i_nome = 'C1001' i_campos = VALUE #( ( 'C1001_campo1' ) ( 'C1001_campo2' ) ( 'C1001_campo3' ) ) ).
+  c2000 = NEW zcl_registro_composite( i_nome = 'C2000' i_campos = VALUE #( ( 'C2000_campo1' ) ( 'C2000_campo2' ) ( 'C2000_campo3' ) ) ).
+  c2001 = NEW zcl_registro_leaf( i_nome = 'C2001' i_campos = VALUE #( ( 'C2001_campo1' ) ( 'C2001_campo2' ) ( 'C2001_campo3' ) ) ).
+  c9999 = NEW zcl_registro_leaf( i_nome = 'C9999' i_campos = VALUE #( ( 'C9999_campo1' ) ( 'C9999_campo2' ) ( 'C9999_campo3' ) ) ).
+
+  raiz->add_filho( c1000 ).
+  c1000->add_filho( c1001 ).
+  raiz->add_filho( c2000 ).
+  c2000->add_filho( c2001 ).
+  raiz->add_filho( c9999 ).
+
+  WRITE: / raiz->to_string( ).
